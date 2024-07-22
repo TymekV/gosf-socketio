@@ -15,31 +15,6 @@ const (
 	queueBufferSize = 10000
 )
 
-var (
-	ErrorWrongHeader = errors.New("Wrong header")
-)
-
-/*
-*
-engine.io header to send or receive
-*/
-type Header struct {
-	Sid          string   `json:"sid"`
-	Upgrades     []string `json:"upgrades"`
-	PingInterval int      `json:"pingInterval"`
-	PingTimeout  int      `json:"pingTimeout"`
-}
-
-/*
-*
-socket.io connection handler
-
-use IsAlive to check that handler is still working
-use Dial to connect to websocket
-use In and Out channels for message exchange
-Close message means channel is closed
-ping is automatic
-*/
 type Channel struct {
 	conn transport.Connection
 
@@ -56,29 +31,28 @@ type Channel struct {
 	request *http.Request
 }
 
-/*
-*
-create channel, map, and set active
-*/
+// Header represents engine.io header to send or receive
+type Header struct {
+	Sid          string   `json:"sid"`
+	Upgrades     []string `json:"upgrades"`
+	PingInterval int      `json:"pingInterval"`
+	PingTimeout  int      `json:"pingTimeout"`
+}
+
+var ErrorWrongHeader = errors.New("Wrong header")
+
+// Initialize channel, map, and set active
 func (c *Channel) initChannel() {
-	//TODO: queueBufferSize from constant to server or client variable
 	c.out = make(chan string, queueBufferSize)
-	//c.ack.resultWaiters = make(map[int](chan string))
 	c.setAliveValue(true)
 }
 
-/*
-*
-Get id of current socket connection
-*/
+// Get the ID of the current socket connection
 func (c *Channel) Id() string {
 	return c.header.Sid
 }
 
-/*
-*
-Checks that Channel is still alive
-*/
+// Check if the Channel is still alive
 func (c *Channel) IsAlive() bool {
 	c.aliveLock.Lock()
 	isAlive := c.alive
@@ -93,21 +67,15 @@ func (c *Channel) setAliveValue(value bool) {
 	c.aliveLock.Unlock()
 }
 
-/*
-*
-Close channel
-*/
+// Close the channel
 func closeChannel(c *Channel, m *methods, args ...interface{}) error {
 	if !c.IsAlive() {
-		//already closed
 		return nil
 	}
 
 	c.conn.Close()
-
 	c.setAliveValue(false)
 
-	//clean outloop
 	for len(c.out) > 0 {
 		<-c.out
 	}
@@ -120,7 +88,7 @@ func closeChannel(c *Channel, m *methods, args ...interface{}) error {
 	return nil
 }
 
-// incoming messages loop, puts incoming messages to In channel
+// Incoming messages loop
 func inLoop(c *Channel, m *methods) error {
 	for {
 		pkg, err := c.conn.GetMessage()
@@ -158,10 +126,7 @@ func storeOverflow(c *Channel) {
 	overflooded.Store(c, struct{}{})
 }
 
-/*
-*
-outgoing messages loop, sends messages from channel to socket
-*/
+// Outgoing messages loop
 func outLoop(c *Channel, m *methods) error {
 	for {
 		outBufferLen := len(c.out)
@@ -185,10 +150,7 @@ func outLoop(c *Channel, m *methods) error {
 	}
 }
 
-/*
-*
-Pinger sends ping messages for keeping connection alive
-*/
+// Pinger sends ping messages to keep connection alive
 func pinger(c *Channel) {
 	interval, _ := c.conn.PingParams()
 	ticker := time.NewTicker(interval)

@@ -3,7 +3,7 @@ package transport
 import (
 	"crypto/tls"
 	"errors"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"time"
 
@@ -40,18 +40,18 @@ func (wsc *WebsocketConnection) GetMessage() (message string, err error) {
 		return "", err
 	}
 
-	//support only text messages exchange
+	// support only text messages exchange
 	if msgType != websocket.TextMessage {
 		return "", ErrorBinaryMessage
 	}
 
-	data, err := ioutil.ReadAll(reader)
+	data, err := io.ReadAll(reader)
 	if err != nil {
 		return "", ErrorBadBuffer
 	}
 	text := string(data)
 
-	//empty messages are not allowed
+	// empty messages are not allowed
 	if len(text) == 0 {
 		return "", ErrorPacketWrong
 	}
@@ -95,9 +95,13 @@ type WebsocketTransport struct {
 	RequestHeader http.Header
 }
 
-func (wst *WebsocketTransport) Connect(url string) (conn Connection, err error) {
+func (wst *WebsocketTransport) Connect(url string, opts *Options) (conn Connection, err error) {
 	dialer := websocket.Dialer{TLSClientConfig: &tls.Config{InsecureSkipVerify: wst.UnsecureTLS}}
-	socket, _, err := dialer.Dial(url, wst.RequestHeader)
+	requestHeaders := http.Header{}
+	for _, extraHeader := range opts.ExtraHeaders {
+		requestHeaders.Set(extraHeader.Key, extraHeader.Value)
+	}
+	socket, _, err := dialer.Dial(url, requestHeaders)
 	if err != nil {
 		return nil, err
 	}
@@ -108,28 +112,24 @@ func (wst *WebsocketTransport) Connect(url string) (conn Connection, err error) 
 func (wst *WebsocketTransport) HandleConnection(
 	w http.ResponseWriter, r *http.Request) (conn Connection, err error) {
 
-	if r.Method != "GET" {
-		http.Error(w, upgradeFailed+ErrorMethodNotAllowed.Error(), 503)
+	if r.Method != http.MethodGet {
+		http.Error(w, upgradeFailed+ErrorMethodNotAllowed.Error(), http.StatusServiceUnavailable)
 		return nil, ErrorMethodNotAllowed
 	}
 
 	socket, err := websocket.Upgrade(w, r, nil, wst.BufferSize, wst.BufferSize)
 	if err != nil {
-		http.Error(w, upgradeFailed+err.Error(), 503)
+		http.Error(w, upgradeFailed+err.Error(), http.StatusServiceUnavailable)
 		return nil, ErrorHttpUpgradeFailed
 	}
 
 	return &WebsocketConnection{socket, wst}, nil
 }
 
-/**
-Websocket connection do not require any additional processing
-*/
+// Websocket connection does not require any additional processing
 func (wst *WebsocketTransport) Serve(w http.ResponseWriter, r *http.Request) {}
 
-/**
-Returns websocket connection with default params
-*/
+// Returns websocket connection with default params
 func GetDefaultWebsocketTransport() *WebsocketTransport {
 	return &WebsocketTransport{
 		PingInterval:   WsDefaultPingInterval,

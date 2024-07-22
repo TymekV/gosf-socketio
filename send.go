@@ -14,12 +14,9 @@ var (
 	ErrorSocketOverflood = errors.New("Socket overflood")
 )
 
-/*
-*
-Send message packet to socket
-*/
+// Send message packet to socket
 func send(msg *protocol.Message, c *Channel, args interface{}) error {
-	//preventing json/encoding "index out of range" panic
+	// preventing json/encoding "index out of range" panic
 	defer func() {
 		if r := recover(); r != nil {
 			log.Println("socket.io send panic: ", r)
@@ -27,12 +24,11 @@ func send(msg *protocol.Message, c *Channel, args interface{}) error {
 	}()
 
 	if args != nil {
-		json, err := json.Marshal(&args)
+		jsonArgs, err := json.Marshal(&args)
 		if err != nil {
 			return err
 		}
-
-		msg.Args = string(json)
+		msg.Args = string(jsonArgs)
 	}
 
 	command, err := protocol.Encode(msg)
@@ -49,10 +45,7 @@ func send(msg *protocol.Message, c *Channel, args interface{}) error {
 	return nil
 }
 
-/*
-*
-Create packet based on given data and send it
-*/
+// Create packet based on given data and send it
 func (c *Channel) Emit(method string, args interface{}) error {
 	msg := &protocol.Message{
 		Type:   protocol.MessageTypeEmit,
@@ -62,10 +55,7 @@ func (c *Channel) Emit(method string, args interface{}) error {
 	return send(msg, c, args)
 }
 
-/*
-*
-Create ack packet based on given data and send it and receive response
-*/
+// Create ack packet based on given data and send it and receive response
 func (c *Channel) Ack(method string, args interface{}, timeout time.Duration) (string, error) {
 	msg := &protocol.Message{
 		Type:   protocol.MessageTypeAckRequest,
@@ -79,6 +69,7 @@ func (c *Channel) Ack(method string, args interface{}, timeout time.Duration) (s
 	err := send(msg, c, args)
 	if err != nil {
 		c.ack.removeWaiter(msg.AckId)
+		return "", err
 	}
 
 	select {

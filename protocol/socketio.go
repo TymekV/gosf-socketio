@@ -15,8 +15,8 @@ const (
 	ackMessage    = "43"
 
 	CloseMessage = "1"
-	PingMessage = "2"
-	PongMessage = "3"
+	PingMessage  = "2"
+	PongMessage  = "3"
 )
 
 var (
@@ -113,63 +113,6 @@ func getMessageType(data string) (int, error) {
 	return 0, ErrorWrongMessageType
 }
 
-/**
-Get ack id of current packet, if present
-*/
-func getAck(text string) (ackId int, restText string, err error) {
-	if len(text) < 4 {
-		return 0, "", ErrorWrongPacket
-	}
-	text = text[2:]
-
-	pos := strings.IndexByte(text, '[')
-	if pos == -1 {
-		return 0, "", ErrorWrongPacket
-	}
-
-	ack, err := strconv.Atoi(text[0:pos])
-	if err != nil {
-		return 0, "", err
-	}
-
-	return ack, text[pos:], nil
-}
-
-/**
-Get message method of current packet, if present
-*/
-func getMethod(text string) (method, restText string, err error) {
-	var start, end, rest, countQuote int
-
-	for i, c := range text {
-		if c == '"' {
-			switch countQuote {
-			case 0:
-				start = i + 1
-			case 1:
-				end = i
-				rest = i + 1
-			default:
-				return "", "", ErrorWrongPacket
-			}
-			countQuote++
-		}
-		if c == ',' {
-			if countQuote < 2 {
-				continue
-			}
-			rest = i + 1
-			break
-		}
-	}
-
-	if (end < start) || (rest >= len(text)) {
-		return "", "", ErrorWrongPacket
-	}
-
-	return text[start:end], text[rest : len(text)-1], nil
-}
-
 func Decode(data string) (*Message, error) {
 	var err error
 	msg := &Message{}
@@ -211,4 +154,55 @@ func Decode(data string) (*Message, error) {
 	}
 
 	return msg, nil
+}
+
+func getAck(text string) (ackId int, restText string, err error) {
+	if len(text) < 4 {
+		return 0, "", ErrorWrongPacket
+	}
+	text = text[2:]
+
+	pos := strings.IndexByte(text, '[')
+	if pos == -1 {
+		return 0, "", ErrorWrongPacket
+	}
+
+	ack, err := strconv.Atoi(text[0:pos])
+	if err != nil {
+		return 0, "", err
+	}
+
+	return ack, text[pos:], nil
+}
+
+func getMethod(text string) (method, restText string, err error) {
+	var start, end, rest, countQuote int
+
+	for i, c := range text {
+		if c == '"' {
+			switch countQuote {
+			case 0:
+				start = i + 1
+			case 1:
+				end = i
+				rest = i + 1
+			default:
+				return "", "", ErrorWrongPacket
+			}
+			countQuote++
+		}
+		if c == ',' {
+			if countQuote < 2 {
+				continue
+			}
+			rest = i + 1
+			break
+		}
+	}
+
+	if (end < start) || (rest >= len(text)) {
+		return "", "", ErrorWrongPacket
+	}
+
+	return text[start:end], text[rest : len(text)-1], nil
 }
