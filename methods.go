@@ -14,36 +14,18 @@ const (
 	OnError         = "error"
 )
 
-/*
-*
-System handler function for internal event processing
-*/
 type systemHandler func(c *Channel)
 
-/*
-*
-Contains maps of message processing functions
-*/
 type methods struct {
-	messageHandlers     sync.Map
-	messageHandlersLock sync.RWMutex
+	messageHandlers sync.Map
 
 	onConnection    systemHandler
 	onDisconnection systemHandler
 }
 
-/*
-*
-create messageHandlers map
-*/
 func (m *methods) initMethods() {
-	//m.messageHandlers = make(sync.Map)
 }
 
-/*
-*
-Add message processing function, and bind it to given method
-*/
 func (m *methods) On(method string, f interface{}) error {
 	c, err := newCaller(f)
 	if err != nil {
@@ -54,10 +36,6 @@ func (m *methods) On(method string, f interface{}) error {
 	return nil
 }
 
-/*
-*
-Find message processing function associated with given method
-*/
 func (m *methods) findMethod(method string) (*caller, bool) {
 	if f, ok := m.messageHandlers.Load(method); ok {
 		return f.(*caller), true
@@ -82,13 +60,6 @@ func (m *methods) callLoopEvent(c *Channel, event string) {
 	f.callFunc(c, &struct{}{})
 }
 
-/*
-*
-Check incoming message
-On ack_resp - look for waiter
-On ack_req - look for processing function and send ack_resp
-On emit - look for processing function
-*/
 func (m *methods) processIncomingMessage(c *Channel, msg *protocol.Message) {
 	switch msg.Type {
 	case protocol.MessageTypeEmit:
@@ -118,7 +89,6 @@ func (m *methods) processIncomingMessage(c *Channel, msg *protocol.Message) {
 
 		var result []reflect.Value
 		if f.ArgsPresent {
-			//data type should be defined for unmarshall
 			data := f.getArgs()
 			err := json.Unmarshal([]byte(msg.Args), &data)
 			if err != nil {

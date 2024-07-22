@@ -2,30 +2,25 @@ package gosocketio
 
 import (
 	"net"
+	"net/http"
 	"strconv"
 
-	"github.com/erock530/gosf-socketio/transport"
+	transport "github.com/erock530/gosf-socketio/transport"
 )
+
+type Client struct {
+	methods
+	Channel
+	opts *transport.Options
+}
 
 const (
 	webSocketProtocol       = "ws://"
 	webSocketSecureProtocol = "wss://"
-	socketioUrl             = "/socket.io/?EIO=3&transport=websocket"
+	socketioUrl             = "/socket.io/?EIO=4&transport=websocket"
 )
 
-/*
-*
-Socket.io client representation
-*/
-type Client struct {
-	methods
-	Channel
-}
-
-/*
-*
-Get ws/wss url by host and port
-*/
+// GetUrl returns the ws/wss url by host and port
 func GetUrl(host string, port int, secure bool) string {
 	var prefix string
 	if secure {
@@ -36,25 +31,23 @@ func GetUrl(host string, port int, secure bool) string {
 	return prefix + net.JoinHostPort(host, strconv.Itoa(port)) + socketioUrl
 }
 
-/*
-*
-connect to host and initialise socket.io protocol
-
-The correct ws protocol url example:
-ws://myserver.com/socket.io/?EIO=3&transport=websocket
-
-You can use GetUrlByHost for generating correct url
-*/
-func Dial(url string, tr transport.Transport) (*Client, error) {
-	c := &Client{}
+// Dial connects to the server with the given options
+func Dial(url string, tr transport.Transport, opts *transport.Options) (*Client, error) {
+	c := &Client{opts: opts}
 	c.initChannel()
 	c.initMethods()
 
-	var err error
-	c.conn, err = tr.Connect(url)
+	requestHeaders := http.Header{}
+	for _, extraHeader := range c.opts.ExtraHeaders {
+		requestHeaders.Set(extraHeader.Key, extraHeader.Value)
+	}
+
+	conn, err := tr.Connect(url, opts)
 	if err != nil {
 		return nil, err
 	}
+
+	c.conn = conn
 
 	go inLoop(&c.Channel, &c.methods)
 	go outLoop(&c.Channel, &c.methods)
@@ -63,10 +56,7 @@ func Dial(url string, tr transport.Transport) (*Client, error) {
 	return c, nil
 }
 
-/*
-*
-Close client connection
-*/
+// Close client connection
 func (c *Client) Close() {
 	closeChannel(&c.Channel, &c.methods)
 }

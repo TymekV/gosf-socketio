@@ -1,167 +1,190 @@
-golang socket.io
-================
+# GoSocketIO
 
-GoLang implementation of [socket.io](http://socket.io) library, client and server.
+[![GoDoc](https://godoc.org/github.com/erock530/gosf-socketio?status.svg)](https://godoc.org/github.com/erock530/gosf-socketio)
+[![Go Report Card](https://goreportcard.com/badge/github.com/erock530/gosf-socketio)](https://goreportcard.com/report/github.com/erock530/gosf-socketio)
 
-This library is maintained for [GOSF](https://github.com/ambelovsky/gosf), the GoLang SocketIO Framework.
+GoSocketIO is a [Socket.IO](http://socket.io) client and server library for Go, compatible with Socket.IO v3 and v4. This package allows you to build real-time, bidirectional communication applications with ease.
 
-This library was built with contributions by:
+This library is based off the [GoLang SocketIO Framework](https://github.com/ambelovsky/gosf)
+
+This library was built with previous contributions by:
 - [ambelovsky](https://github.com/ambelovsky)
 - [joaopandolfi](https://github.com/joaopandolfi)
-- [erock530](https://github.com/erock530)
 
-Examples directory contains simple client and server.
 
-### Get It
+## Features
 
-```sh
-go get -u github.com/erock530/gosf-socketio
+- **Socket.IO v3 and v4 Compatible**: Fully compatible with the latest versions of Socket.IO.
+- **Extra Headers Support**: Customize HTTP headers for WebSocket connections.
+- **Event-based Architecture**: Simplified event handling for connection, disconnection, and custom events.
+- **Room Support**: Easily broadcast messages to specific groups of clients.
+- **Ping/Pong Mechanism**: Built-in heartbeat mechanism to keep connections alive.
+
+## Installation
+
+To install GoSocketIO, use `go get`:
+
+```bash
+go get github.com/erock530/gosf-socketio
 ```
 
-### Simple server usage
+## Usage
+
+### Server Example
+
+Here’s a simple WebSocket server using GoSocketIO:
 
 ```go
-	//create
-	server := gosocketio.NewServer(transport.GetDefaultWebsocketTransport())
+package main
 
-	//handle connected
-	server.On(gosocketio.OnConnection, func(c *gosocketio.Channel) {
-		log.Println("New client connected")
-		//join them to room
-		c.Join("chat")
-	})
+import (
+    "fmt"
+    "log"
+    "net/http"
 
-	type Message struct {
-		Name string `json:"name"`
-		Message string `json:"message"`
-	}
+    "github.com/erock530/gosf-socketio"
+    "github.com/erock530/gosf-socketio/transport"
+)
 
-	//handle custom event
-	server.On("send", func(c *gosocketio.Channel, msg Message) string {
-		//send event to all in room
-		c.BroadcastTo("chat", "message", msg)
-		return "OK"
-	})
+func main() {
+    server := gosocketio.NewServer(transport.GetDefaultWebsocketTransport())
 
-	//setup http server
-	serveMux := http.NewServeMux()
-	serveMux.Handle("/socket.io/", server)
-	log.Panic(http.ListenAndServe(":80", serveMux))
+    server.On(gosocketio.OnConnection, func(c *gosocketio.Channel) {
+        fmt.Println("New client connected:", c.Id())
+        c.Join("chat")
+    })
+
+    server.On(gosocketio.OnDisconnection, func(c *gosocketio.Channel) {
+        fmt.Println("Client disconnected:", c.Id())
+    })
+
+    server.On("chat message", func(c *gosocketio.Channel, message string) {
+        fmt.Printf("Received message from %s: %s\n", c.Id(), message)
+        server.BroadcastTo("chat", "chat message", message)
+    })
+
+    http.Handle("/socket.io/", server)
+
+    addr := "localhost:8080"
+    fmt.Printf("Serving at %s...\n", addr)
+    log.Fatal(http.ListenAndServe(addr, nil))
+}
 ```
+For more details, see the [Server Example](https://github.com/erock530/gosf-socketio/examples/example-server)
 
-### Javascript client for caller server
+### Go Client Example
 
-```javascript
-var socket = io('ws://yourdomain.com', {transports: ['websocket']});
-
-    // listen for messages
-    socket.on('message', function(message) {
-
-        console.log('new message');
-        console.log(message);
-    });
-
-    socket.on('connect', function () {
-
-        console.log('socket connected');
-
-        //send something
-        socket.emit('send', {name: "my name", message: "hello"}, function(result) {
-
-            console.log('sended successfully');
-            console.log(result);
-        });
-    });
-```
-
-### Server, detailed usage
+Here’s how you can create a Go client that connects to the server:
 
 ```go
-    //create server instance, you can setup transport parameters or get the default one
-    //look at websocket.go for parameters description
-	server := gosocketio.NewServer(transport.GetDefaultWebsocketTransport())
+package main
 
-	// --- caller is default handlers
+import (
+    "fmt"
+    "log"
+    "time"
 
-	//on connection handler, occurs once for each connected client
-	server.On(gosocketio.OnConnection, func(c *gosocketio.Channel, args interface{}) {
-	    //client id is unique
-		log.Println("New client connected, client id is ", c.Id())
+    "github.com/erock530/gosf-socketio"
+    "github.com/erock530/gosf-socketio/transport"
+)
 
-		//you can join clients to rooms
-		c.Join("room name")
-
-		//of course, you can list the clients in the room, or account them
-		channels := c.List(data.Channel)
-		//or check the amount of clients in room
-		amount := c.Amount(data.Channel)
-		log.Println(amount, "clients in room")
-	})
-	//on disconnection handler, if client hangs connection unexpectedly, it will still occurs
-	//you can omit function args if you do not need them
-	//you can return string value for ack, or return nothing for emit
-	server.On(gosocketio.OnDisconnection, func(c *gosocketio.Channel) {
-		//caller is not necessary, client will be removed from rooms
-		//automatically on disconnect
-		//but you can remove client from room whenever you need to
-		c.Leave("room name")
-
-		log.Println("Disconnected")
-	})
-	//error catching handler
-	server.On(gosocketio.OnError, func(c *gosocketio.Channel) {
-		log.Println("Error occurs")
-	})
-
-	// --- caller is custom handler
-
-	//custom event handler
-	server.On("handle something", func(c *gosocketio.Channel, channel Channel) string {
-		log.Println("Something successfully handled")
-
-		//you can return result of handler, in caller case
-		//handler will be converted from "emit" to "ack"
-		return "result"
-	})
-
-    //you can get client connection by it's id
-    channel, _ := server.GetChannel("client id here")
-    //and send the event to the client
-    type MyEventData struct {
-        Data: string
+func main() {
+    wsTransport := transport.GetDefaultWebsocketTransport()
+    options := &gosocketio.Options{
+        ExtraHeaders: []gosocketio.ExtraHeaders{
+            {Key: "Content-Type", Value: "application/json"},
+            {Key: "Authorization", Value: "Bearer YOUR_ACCESS_TOKEN"},
+        },
+        PingTimeout:  60 * time.Second,
+        PingInterval: 30 * time.Second,
     }
-    channel.Emit("my event", MyEventData{"my data"})
 
-    //or you can send ack to client and get result back
-    result, err := channel.Ack("my custom ack", MyEventData{"ack data"}, time.Second * 5)
+    client, err := gosocketio.Dial("ws://localhost:8080/socket.io/?EIO=3&transport=websocket", wsTransport, options)
+    if err != nil {
+        log.Fatalf("Failed to connect to server: %v", err)
+    }
+    defer client.Close()
 
-    //you can broadcast to all clients
-    server.BroadcastToAll("my event", MyEventData{"broadcast"})
+    client.On(gosocketio.OnConnection, func(c *gosocketio.Channel) {
+        fmt.Println("Connected to server")
+    })
 
-    //or for clients joined to room
-    server.BroadcastTo("my room", "my event", MyEventData{"room broadcast"})
+    client.On(gosocketio.OnDisconnection, func(c *gosocketio.Channel) {
+        fmt.Println("Disconnected from server")
+    })
 
-    //setup http server like caller for handling connections
-	serveMux := http.NewServeMux()
-	serveMux.Handle("/socket.io/", server)
-	log.Panic(http.ListenAndServe(":80", serveMux))
+    client.On("chat message", func(c *gosocketio.Channel, message string) {
+        fmt.Printf("Received message: %s\n", message)
+    })
+
+    err = client.Emit("chat message", "Hello, Server!")
+    if err != nil {
+        log.Printf("Failed to send message: %v", err)
+    }
+
+    select {}
+}
+
 ```
 
-### Client
+For more details, see the [Go Client Example](https://github.com/erock530/gosf-socketio/examples/example-go-client)
 
-```go
-    //connect to server, you can use your own transport settings
-	c, err := gosocketio.Dial(
-		gosocketio.GetUrl("localhost", 80, false),
-		transport.GetDefaultWebsocketTransport(),
-	)
+### JavaScript Client Example
 
-	//do something, handlers and functions are same as server ones
+Here’s a simple JavaScript client using Socket.IO:
 
-	//close connection
-	c.Close()
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Socket.IO Client</title>
+</head>
+<body>
+    <h1>WebSocket Chat</h1>
+    <div id="chat">
+        <ul id="messages"></ul>
+    </div>
+    <form id="form" action="">
+        <input id="input" autocomplete="off" /><button>Send</button>
+    </form>
+    <script src="https://cdn.socket.io/4.0.1/socket.io.min.js"></script>
+    <script>
+        var socket = io('http://localhost:8080');
+
+        socket.on('connect', function() {
+            console.log('Connected to server');
+        });
+
+        socket.on('disconnect', function() {
+            console.log('Disconnected from server');
+        });
+
+        socket.on('chat message', function(msg) {
+            var item = document.createElement('li');
+            item.textContent = msg;
+            document.getElementById('messages').appendChild(item);
+        });
+
+        document.getElementById('form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            var input = document.getElementById('input');
+            socket.emit('chat message', input.value);
+            input.value = '';
+        });
+    </script>
+</body>
+</html>
 ```
+For more details, see the [JavaScript Client Example](https://github.com/erock530/gosf-socketio/examples/example-js-client)
+
+
+## Contributing
+
+We welcome contributions! Please check out the [Contributing Guide](https://github.com/erock530/gosf-socketio/CONTRIBUTING.md) for more details.
 
 ## License
 
-MIT
+This project is licensed under the MIT License. See the [LICENSE](https://github.com/erock530/gosf-socketio/LICENSE) file for details.
+
