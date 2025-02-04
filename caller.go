@@ -14,7 +14,6 @@ type caller struct {
 
 var (
 	ErrorCallerNotFunc     = errors.New("f is not function")
-	ErrorCallerNot2Args    = errors.New("f should have 1 or 2 args")
 	ErrorCallerMaxOneValue = errors.New("f should return not more than one value")
 )
 
@@ -36,11 +35,9 @@ func newCaller(f interface{}) (*caller, error) {
 	if fType.NumIn() == 1 {
 		curCaller.Args = nil
 		curCaller.ArgsPresent = false
-	} else if fType.NumIn() == 2 {
+	} else if fType.NumIn() >= 2 {
 		curCaller.Args = fType.In(1)
 		curCaller.ArgsPresent = true
-	} else {
-		return nil, ErrorCallerNot2Args
 	}
 
 	return curCaller, nil
