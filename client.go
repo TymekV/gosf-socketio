@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strconv"
 
-	transport "github.com/erock530/gosf-socketio/transport"
+	transport "github.com/TymekV/gosf-socketio/transport"
 )
 
 type Client struct {

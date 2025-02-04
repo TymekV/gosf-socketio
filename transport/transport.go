@@ -3,7 +3,7 @@ package transport
 import (
 	"net/http"
 	"time"
-	// "github.com/erock530/gosf-socketio/gosocketio"
+	// "github.com/TymekV/gosf-socketio/gosocketio"
 )
 
 // End-point connection for given transport

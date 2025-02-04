@@ -1,4 +1,4 @@
-module github.com/erock530/gosf-socketio
+module github.com/TymekV/gosf-socketio
 
 go 1.22.0
 

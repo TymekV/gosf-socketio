@@ -5,8 +5,8 @@ import (
 	"log"
 	"time"
 
-	gosocketio "github.com/erock530/gosf-socketio"
-	"github.com/erock530/gosf-socketio/transport"
+	gosocketio "github.com/TymekV/gosf-socketio"
+	"github.com/TymekV/gosf-socketio/transport"
 )
 
 func main() {

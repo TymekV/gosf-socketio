@@ -1,7 +1,7 @@
 # GoSocketIO
 
-[![GoDoc](https://godoc.org/github.com/erock530/gosf-socketio?status.svg)](https://godoc.org/github.com/erock530/gosf-socketio)
-[![Go Report Card](https://goreportcard.com/badge/github.com/erock530/gosf-socketio)](https://goreportcard.com/report/github.com/erock530/gosf-socketio)
+[![GoDoc](https://godoc.org/github.com/TymekV/gosf-socketio?status.svg)](https://godoc.org/github.com/TymekV/gosf-socketio)
+[![Go Report Card](https://goreportcard.com/badge/github.com/TymekV/gosf-socketio)](https://goreportcard.com/report/github.com/TymekV/gosf-socketio)
 
 GoSocketIO is a [Socket.IO](http://socket.io) client and server library for Go, compatible with Socket.IO v3 and v4. This package allows you to build real-time, bidirectional communication applications with ease.
 
@@ -25,7 +25,7 @@ This library was built with previous contributions by:
 To install GoSocketIO, use `go get`:
 
 ```bash
-go get github.com/erock530/gosf-socketio
+go get github.com/TymekV/gosf-socketio
 ```
 
 ## Usage
@@ -42,8 +42,8 @@ import (
     "log"
     "net/http"
 
-    "github.com/erock530/gosf-socketio"
-    "github.com/erock530/gosf-socketio/transport"
+    "github.com/TymekV/gosf-socketio"
+    "github.com/TymekV/gosf-socketio/transport"
 )
 
 func main() {
@@ -70,7 +70,7 @@ func main() {
     log.Fatal(http.ListenAndServe(addr, nil))
 }
 ```
-For more details, see the [Server Example](https://github.com/erock530/gosf-socketio/examples/example-server)
+For more details, see the [Server Example](https://github.com/TymekV/gosf-socketio/examples/example-server)
 
 ### Go Client Example
 
@@ -84,8 +84,8 @@ import (
     "log"
     "time"
 
-    "github.com/erock530/gosf-socketio"
-    "github.com/erock530/gosf-socketio/transport"
+    "github.com/TymekV/gosf-socketio"
+    "github.com/TymekV/gosf-socketio/transport"
 )
 
 func main() {
@@ -127,7 +127,7 @@ func main() {
 
 ```
 
-For more details, see the [Go Client Example](https://github.com/erock530/gosf-socketio/examples/example-go-client)
+For more details, see the [Go Client Example](https://github.com/TymekV/gosf-socketio/examples/example-go-client)
 
 ### JavaScript Client Example
 
@@ -177,14 +177,14 @@ Here’s a simple JavaScript client using Socket.IO:
 </body>
 </html>
 ```
-For more details, see the [JavaScript Client Example](https://github.com/erock530/gosf-socketio/examples/example-js-client)
+For more details, see the [JavaScript Client Example](https://github.com/TymekV/gosf-socketio/examples/example-js-client)
 
 
 ## Contributing
 
-We welcome contributions! Please check out the [Contributing Guide](https://github.com/erock530/gosf-socketio/CONTRIBUTING.md) for more details.
+We welcome contributions! Please check out the [Contributing Guide](https://github.com/TymekV/gosf-socketio/CONTRIBUTING.md) for more details.
 
 ## License
 
-This project is licensed under the MIT License. See the [LICENSE](https://github.com/erock530/gosf-socketio/LICENSE) file for details.
+This project is licensed under the MIT License. See the [LICENSE](https://github.com/TymekV/gosf-socketio/LICENSE) file for details.
 
